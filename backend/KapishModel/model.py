@@ -8,7 +8,7 @@ CORS(app)
 
 # Set up API key and check if it's available
 try:
-    api_key = "AIzaSyDCsjRPPwZuWzwDn16fRNGHvWdKPkCgpiQ"
+    api_key = "" #ENTER API KEY
     genai.configure(api_key=api_key)
     print("API key loaded successfully.")
 except KeyError:
