@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency SOS System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+        }
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        .contact-card {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        #statusMessage {
+            padding: 10px;
+            margin: 10px 0;
+            display: none;
+        }
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        .sos-button {
+            background-color: red;
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .sos-button:disabled {
+            background-color: #cccccc;
+        }
+    </style>
+</head>
+<body>
+    <div id="statusMessage"></div>
+
+    <h2>Add Emergency Contact</h2>
+    <div class="form-group">
+        <input type="text" id="contactName" placeholder="Contact Name">
+        <input type="text" id="contactPhone" placeholder="Phone Number">
+        <button onclick="addContact()">Add Contact</button>
+    </div>
+
+    <h2>Emergency Contacts</h2>
+    <div id="contactsList"></div>
+
+    <h2>SOS Message</h2>
+    <div class="form-group">
+        <textarea id="sosMessage" placeholder="Emergency message (optional)"></textarea>
+        <button onclick="sendSOS()" id="sosButton" class="sos-button" disabled>SEND SOS</button>
+    </div>
+
+    <script>
+        // Store contacts
+        let contacts = [];
+
+        // Show status message
+        function showStatus(message, isError = false) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.textContent = message;
+            statusDiv.className = isError ? 'error' : 'success';
+            statusDiv.style.display = 'block';
+            // Hide message after 3 seconds
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        // Validate phone number (10 digits)
+        function isValidPhone(phone) {
+            return /^\d{10}$/.test(phone);
+        }
+
+        // Add contact
+        function addContact() {
+            const nameInput = document.getElementById('contactName');
+            const phoneInput = document.getElementById('contactPhone');
+            
+            const name = nameInput.value.trim();
+            const phone = phoneInput.value.trim();
+
+            // Validate inputs
+            if (!name || !phone) {
+                showStatus('Please fill in both name and phone number', true);
+                return;
+            }
+
+            if (!isValidPhone(phone)) {
+                showStatus('Please enter a valid 10-digit phone number', true);
+                return;
+            }
+
+            // Add to contacts array
+            contacts.push({ name, phone });
+
+            // Clear inputs
+            nameInput.value = '';
+            phoneInput.value = '';
+
+            // Update display
+            updateContactsList();
+            
+            // Enable SOS button
+            document.getElementById('sosButton').disabled = false;
+            
+            showStatus('Contact added successfully!');
+        }
+
+        // Update contacts display
+        function updateContactsList() {
+            const list = document.getElementById('contactsList');
+            list.innerHTML = contacts.map((contact, index) => `
+                <div class="contact-card">
+                    <div>Name: ${contact.name}</div>
+                    <div>Phone: ${contact.phone}</div>
+                    <button onclick="removeContact(${index})">Remove</button>
+                </div>
+            `).join('');
+        }
+
+        // Remove contact
+        function removeContact(index) {
+            contacts.splice(index, 1);
+            updateContactsList();
+            if (contacts.length === 0) {
+                document.getElementById('sosButton').disabled = true;
+            }
+        }
+
+        // Send SOS
+        async function sendSOS() {
+            if (contacts.length === 0) {
+                showStatus('Please add at least one contact first', true);
+                return;
+            }
+
+            const sosButton = document.getElementById('sosButton');
+            sosButton.disabled = true;
+            sosButton.textContent = 'Sending...';
+
+            try {
+                const response = await fetch('/api/send-sos', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        contacts: contacts,
+                        message: document.getElementById('sosMessage').value
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showStatus('SOS alerts sent successfully!');
+                } else {
+                    throw new Error('Failed to send SOS');
+                }
+            } catch (error) {
+                showStatus('Error sending SOS alerts', true);
+            } finally {
+                sosButton.disabled = false;
+                sosButton.textContent = 'SEND SOS';
+            }
+        }
+    </script>
+</body>
+</html>
